@@ -1,6 +1,6 @@
-Bulk Bing Image downloader
+Bulk Bing Image Downloader
 ==========================
-*Bulk Bing Image downloader (BBID)* is downloader which:
+*Bulk Bing Image Downloader (BBID)* is downloader which:
 - downloads full-size images from bing image search results
 - is multithreaded
 - is crossplatform
