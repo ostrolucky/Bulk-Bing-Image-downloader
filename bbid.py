@@ -54,7 +54,7 @@ if __name__ == "__main__":
 	current = 1
 	last = ''
 	while True:
-		response = urllib.request.urlopen('http://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&async=content&first=' + str(current) + '&adlt=' + adlt)
+		response = urllib.request.urlopen('https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&async=content&first=' + str(current) + '&adlt=' + adlt)
 		html = response.read().decode('utf8')
 		links = re.findall('imgurl:&quot;(.*?)&quot;,oh',html)
 		try:
