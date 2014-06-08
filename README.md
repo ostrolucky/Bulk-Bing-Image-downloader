@@ -7,6 +7,7 @@ Bulk Bing Image Downloader
 - bypasses bing API
 - has option to disable adult content filtering
 - is written in python 3.
+- uses SSL connection
 
 Usage
 =====
