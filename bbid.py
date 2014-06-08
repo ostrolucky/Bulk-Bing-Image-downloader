@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python3
 import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random
 
 #config
