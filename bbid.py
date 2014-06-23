@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random
+import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket
 
 #config
 output_dir = './bing' #default output dir
 adult_filter = True #Do not disable adult filter by default
 pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threads
 bingcount = 35 #default bing paging
+socket.setdefaulttimeout(2)
 
 in_progress = []
 def download(url):
