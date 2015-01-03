@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket
+import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket, time
 
 #config
 output_dir = './bing' #default output dir
@@ -69,3 +69,4 @@ if __name__ == "__main__":
 		except IndexError:
 			print("No search results")
 			sys.exit()
+		time.sleep(0.1)
