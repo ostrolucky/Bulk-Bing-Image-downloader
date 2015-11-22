@@ -4,9 +4,9 @@ import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse
 #config
 output_dir = './bing' #default output dir
 adult_filter = True #Do not disable adult filter by default
-pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threads
+pool_sema = threading.BoundedSemaphore(value = 100) #max number of download threads
 bingcount = 35 #default bing paging
-socket.setdefaulttimeout(2)
+socket.setdefaulttimeout(10)
 
 in_progress = []
 tried_urls = []
@@ -61,12 +61,14 @@ def fetchImagesFromKeyword(keyword,output_dir):
 		time.sleep(0.1)
 	return True
 
-def backup_history(sigal, frame):
+def backup_history(*args):
 	download_history=open('download_history.pickle','wb')
 	pickle.dump(tried_urls,download_history)
 	pickle.dump(finished_keywords, download_history)
+	download_history.close()
 	print('history_dumped')
-	sys.exit(0)
+	if args:
+		exit(0)
 	
 if __name__ == "__main__":
 	atexit.register(removeNotFinished)
@@ -105,17 +107,17 @@ if __name__ == "__main__":
 			exit(1)
 		
 		for keyword in inputFile.readlines():
-			keyword_hash=hashlib.sha224(keyword.encode('utf-8')).digest()
+			keyword_hash=hashlib.sha224(keyword.strip().encode('utf-8')).digest()
 			if keyword_hash in finished_keywords:
-				print('\nSkipping {0}\n'.format(keyword))
+				print('Skipping {0}'.format(keyword.strip()))
 				continue
 			output_dir=keyword.strip().replace(' ','_')
 			if not os.path.exists(r'bing/'+output_dir):
 				os.makedirs(r'bing/'+output_dir)
 			if fetchImagesFromKeyword(keyword,output_dir):
 				finished_keywords.append(keyword_hash)
+			backup_history()
 		inputFile.close()
-		
 	elif args.search_string:	
 		if args.output:
 			output_dir = args.output
@@ -124,8 +126,6 @@ if __name__ == "__main__":
 			os.makedirs(output_dir)
 		keyword = args.search_string
 		fetchImagesFromKeyword(keyword,output_dir)
-			
-		
 	backup_history()
 
 	
