@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket, time
+import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket, time, hashlib, pickle, signal
 
 #config
 output_dir = './bing' #default output dir
@@ -10,22 +10,27 @@ socket.setdefaulttimeout(2)
 
 in_progress = []
 tried_urls = []
+finished_keywords=[]
 def download(url,output_dir):
-	if hash(url) in tried_urls:
+	global tried_urls
+	url_hash=hashlib.sha224(url.encode('utf-8')).digest()
+	if url_hash in tried_urls:
 		return
 	pool_sema.acquire() 
 	path = urllib.parse.urlsplit(url).path
 	filename = posixpath.basename(path)
-	while os.path.exists(output_dir + '/' + filename):
+	if len(filename)>40:
+		filename=filename[:36]+filename[-4:]
+	while os.path.exists(r'bing/'+output_dir + '/' + filename):
 		filename = str(random.randint(0,100)) + filename
 	in_progress.append(filename)
 	try:
-		urllib.request.urlretrieve(url, output_dir + '/' + filename)
+		urllib.request.urlretrieve(url, r'bing/'+output_dir + '/' + filename)
 		in_progress.remove(filename)
 		print("OK " + filename)
 	except:
 		print("FAIL " + filename)
-	tried_urls.append(hash(url))
+	tried_urls.append(url_hash)
 	pool_sema.release()
 
 def removeNotFinished():
@@ -52,8 +57,17 @@ def fetchImagesFromKeyword(keyword,output_dir):
 				t.start()
 		except IndexError:
 			print('No search results for "{0}"'.format(keyword))
+			return False
 		time.sleep(0.1)
+	return True
 
+def backup_history(sigal, frame):
+	download_history=open('download_history.pickle','wb')
+	pickle.dump(tried_urls,download_history)
+	pickle.dump(finished_keywords, download_history)
+	print('history_dumped')
+	sys.exit(0)
+	
 if __name__ == "__main__":
 	atexit.register(removeNotFinished)
 	parser = argparse.ArgumentParser(description = 'Bing image bulk downloader')
@@ -65,6 +79,16 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	if (not args.search_string) and (not args.search_file):
 		parser.error('Provide Either search string or path to file containing search strings')	 
+	
+	signal.signal(signal.SIGINT, backup_history)
+	signal.signal(signal.SIGTSTP, backup_history)
+	try:
+		download_history=open('download_history.pickle','rb')
+		tried_urls=pickle.load(download_history)
+		finished_keywords=pickle.load(download_history)
+		download_history.close()
+	except (OSError, IOError):
+		tried_urls=[]
 	if adult_filter:
 		adlt = ''
 	else:
@@ -81,10 +105,15 @@ if __name__ == "__main__":
 			exit(1)
 		
 		for keyword in inputFile.readlines():
-			output_dir=keyword.replace(' ','_').strip()
-			if not os.path.exists(output_dir):
-				os.makedirs(output_dir)
-			fetchImagesFromKeyword(keyword,output_dir)
+			keyword_hash=hashlib.sha224(keyword.encode('utf-8')).digest()
+			if keyword_hash in finished_keywords:
+				print('\nSkipping {0}\n'.format(keyword))
+				continue
+			output_dir=keyword.strip().replace(' ','_')
+			if not os.path.exists(r'bing/'+output_dir):
+				os.makedirs(r'bing/'+output_dir)
+			if fetchImagesFromKeyword(keyword,output_dir):
+				finished_keywords.append(keyword_hash)
 		inputFile.close()
 		
 	elif args.search_string:	
@@ -95,5 +124,8 @@ if __name__ == "__main__":
 			os.makedirs(output_dir)
 		keyword = args.search_string
 		fetchImagesFromKeyword(keyword,output_dir)
-	
+			
+		
+	backup_history()
+
 	
