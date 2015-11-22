@@ -4,9 +4,9 @@ import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse
 #config
 output_dir = './bing' #default output dir
 adult_filter = True #Do not disable adult filter by default
-pool_sema = threading.BoundedSemaphore(value = 100) #max number of download threads
+pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threads
 bingcount = 35 #default bing paging
-socket.setdefaulttimeout(10)
+socket.setdefaulttimeout(4)
 
 in_progress = []
 tried_urls = []
