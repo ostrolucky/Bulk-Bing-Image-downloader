@@ -92,7 +92,6 @@ def backup_history(*args):
 	download_history.close()
 	print('history_dumped')
 	if args:
-		failed_urls_list.close()
 		exit(0)
 	
 if __name__ == "__main__":
