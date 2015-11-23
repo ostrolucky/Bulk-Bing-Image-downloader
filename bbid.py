@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket, time, hashlib, pickle, signal
+import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket, time, hashlib, pickle, signal, subprocess
 
 #config
 output_dir = './bing' #default output dir
 adult_filter = True #Do not disable adult filter by default
 pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threads
 bingcount = 35 #default bing paging
-socket.setdefaulttimeout(4)
+socket.setdefaulttimeout(5)
 
 in_progress = []
 tried_urls = []
 finished_keywords=[]
-def download(url,output_dir):
-	global tried_urls
+failed_urls = []
+failed_urls_list=0
+urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
+def download(url,output_dir,retry=False):
+	global tried_urls, failed_urls
 	url_hash=hashlib.sha224(url.encode('utf-8')).digest()
 	if url_hash in tried_urls:
 		return
@@ -25,12 +28,30 @@ def download(url,output_dir):
 		filename = str(random.randint(0,100)) + filename
 	in_progress.append(filename)
 	try:
-		urllib.request.urlretrieve(url, r'bing/'+output_dir + '/' + filename)
+		request=urllib.request.Request(url,None,urlopenheader)
+		image=urllib.request.urlopen(request).read()
+		if len(image)==0:
+			print('no image')
+		imagefile=open(r'bing/'+output_dir + '/' + filename,'wb')
+		imagefile.write(image)
+		imagefile.close()
+		#urllib.request.urlretrieve(url, r'bing/'+output_dir + '/' + filename, headers=urlopenheader)
 		in_progress.remove(filename)
-		print("OK " + filename)
-	except:
-		print("FAIL " + filename)
-	tried_urls.append(url_hash)
+		if retry:
+			print('Retry OK '+ filename)
+		else:
+			print("OK " + filename)
+		tried_urls.append(url_hash)
+	except Exception as e:
+		print(e)
+		print ('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+		if retry:
+			print('Retry Fail ' + filename)
+			failed_urls_list.write(str(url)+'\n')
+		else:
+			print("FAIL " + filename)
+		if not retry:
+			failed_urls.append((url, output_dir))
 	pool_sema.release()
 
 def removeNotFinished():
@@ -44,7 +65,9 @@ def fetchImagesFromKeyword(keyword,output_dir):
 	current = 1
 	last = ''
 	while True:
-		response = urllib.request.urlopen('https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&async=content&first=' + str(current) + '&adlt=' + adlt)
+		request_url='https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&async=content&qft=+filterui:imagesize-wallpaper&first=' + str(current) + '&adlt=' + adlt
+		request=urllib.request.Request(request_url,None,headers=urlopenheader)
+		response=urllib.request.urlopen(request)
 		html = response.read().decode('utf8')
 		links = re.findall('imgurl:&quot;(.*?)&quot;',html)
 		try:
@@ -62,12 +85,14 @@ def fetchImagesFromKeyword(keyword,output_dir):
 	return True
 
 def backup_history(*args):
+	failed_urls_list.close()
 	download_history=open('download_history.pickle','wb')
 	pickle.dump(tried_urls,download_history)
 	pickle.dump(finished_keywords, download_history)
 	download_history.close()
 	print('history_dumped')
 	if args:
+		failed_urls_list.close()
 		exit(0)
 	
 if __name__ == "__main__":
@@ -105,17 +130,28 @@ if __name__ == "__main__":
 		except (OSError, IOError):
 			print("Couldn't open file {}".format(args.search_file))
 			exit(1)
-		
+		if not os.path.exists(r'failed/'):
+				os.makedirs(r'failed/')
 		for keyword in inputFile.readlines():
+			diskusage=subprocess.check_output('du -s',shell=True)[:-2]
+			if int(diskusage)>100000000:
+				backup_history()
+				exit(0)
 			keyword_hash=hashlib.sha224(keyword.strip().encode('utf-8')).digest()
 			if keyword_hash in finished_keywords:
-				print('Skipping {0}'.format(keyword.strip()))
+				print('"{0}" Already downloaded'.format(keyword.strip()))
 				continue
 			output_dir=keyword.strip().replace(' ','_')
+			failed_urls_list=open('failed/'+output_dir+'.txt','a+')
 			if not os.path.exists(r'bing/'+output_dir):
 				os.makedirs(r'bing/'+output_dir)
 			if fetchImagesFromKeyword(keyword,output_dir):
 				finished_keywords.append(keyword_hash)
+				for failed_url in failed_urls:
+					t = threading.Thread(target = download,args = (failed_url[0],failed_url[1],True))
+					t.start()
+				failed_urls=[]
+			failed_urls_list.close()
 			backup_history()
 		inputFile.close()
 	elif args.search_string:	
@@ -126,6 +162,5 @@ if __name__ == "__main__":
 			os.makedirs(output_dir)
 		keyword = args.search_string
 		fetchImagesFromKeyword(keyword,output_dir)
-	backup_history()
 
 	
