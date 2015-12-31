@@ -9,6 +9,10 @@ Bulk Bing Image Downloader
 - is written in python 3.
 - uses SSL connection
 
-Usage
-=====
-`./bbid.py <keyword to search> [-o <output directory=./bing>] [--filter] [--no-filter] [-h]`
+### Usage
+```
+chmod +x bbid.py
+./bbid.py [-h] [-s SEARCH_STRING] [-f SEARCH_FILE] [-o OUTPUT] [--filter] [--no-filter]`
+```
+### Example
+`./bbid.py -s earth`
