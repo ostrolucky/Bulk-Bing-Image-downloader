@@ -104,7 +104,6 @@ if __name__ == "__main__":
 		os.makedirs(output_dir)
 	output_dir_origin = output_dir
 	signal.signal(signal.SIGINT, backup_history)
-	signal.signal(signal.SIGTSTP, backup_history)
 	try:
 		download_history=open(output_dir + '/download_history.pickle','rb')
 		tried_urls=pickle.load(download_history)
