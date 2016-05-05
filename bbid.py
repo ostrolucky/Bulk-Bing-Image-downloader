@@ -12,6 +12,7 @@ in_progress = []
 tried_urls = []
 finished_keywords=[]
 failed_urls = []
+image_md5s = {}
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
 def download(url,output_dir,retry=False):
 	global tried_urls, failed_urls
@@ -31,6 +32,16 @@ def download(url,output_dir,retry=False):
 		image=urllib.request.urlopen(request).read()
 		if len(image)==0:
 			print('no image')
+
+		md5 = hashlib.md5()
+		md5.update(image)
+		md5_key = md5.hexdigest()
+		if md5_key in image_md5s:
+			print('FAIL Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
+			return
+
+		image_md5s[md5_key] = filename
+
 		imagefile=open(output_dir + '/' + filename,'wb')
 		imagefile.write(image)
 		imagefile.close()
@@ -82,6 +93,7 @@ def backup_history(*args):
 	download_history=open(output_dir + '/download_history.pickle','wb')
 	pickle.dump(tried_urls,download_history)
 	pickle.dump(finished_keywords, download_history)
+	pickle.dump(image_md5s, download_history)
 	download_history.close()
 	print('history_dumped')
 	if args:
@@ -108,6 +120,7 @@ if __name__ == "__main__":
 		download_history=open(output_dir + '/download_history.pickle','rb')
 		tried_urls=pickle.load(download_history)
 		finished_keywords=pickle.load(download_history)
+		image_md5s=pickle.load(download_history)
 		download_history.close()
 	except (OSError, IOError):
 		tried_urls=[]
