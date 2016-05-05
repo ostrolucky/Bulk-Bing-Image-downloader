@@ -37,7 +37,7 @@ def download(url,output_dir,retry=False):
 		md5.update(image)
 		md5_key = md5.hexdigest()
 		if md5_key in image_md5s:
-			print('FAIL Identical image already exists! Skipping: ' + filename)
+			print('FAIL Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
 			return
 
 		image_md5s[md5_key] = filename
