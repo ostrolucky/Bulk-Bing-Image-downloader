@@ -64,7 +64,8 @@ def download(url,output_dir,retry=False):
 		else:
 			print("FAIL " + filename)
 			failed_urls.append((url, output_dir))
-	pool_sema.release()
+	finally:
+		pool_sema.release()
 
 def removeNotFinished():
 	for filename in in_progress:
