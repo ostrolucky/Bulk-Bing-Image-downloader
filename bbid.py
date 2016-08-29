@@ -8,6 +8,9 @@ pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threa
 bingcount = 35 #default bing paging
 socket.setdefaulttimeout(2)
 
+# For synchronization
+img_hash_lock = threading.Lock()
+
 in_progress = []
 tried_urls = []
 finished_keywords=[]
@@ -15,7 +18,7 @@ failed_urls = []
 image_md5s = {}
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
 def download(url,output_dir,retry=False):
-	global tried_urls, failed_urls
+	global tried_urls, failed_urls, image_md5s      # Is this necessary?
 	url_hash=hashlib.sha224(url.encode('utf-8')).digest()
 	if url_hash in tried_urls:
 		return
@@ -36,12 +39,15 @@ def download(url,output_dir,retry=False):
 		md5 = hashlib.md5()
 		md5.update(image)
 		md5_key = md5.hexdigest()
+		img_hash_lock.acquire()
 		if md5_key in image_md5s:
+			img_hash_lock.release()
 			print('FAIL Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
 			in_progress.remove(filename)
 			return
 
 		image_md5s[md5_key] = filename
+		img_hash_lock.release()
 
 		imagefile=open(output_dir + '/' + filename,'wb')
 		imagefile.write(image)
@@ -94,7 +100,8 @@ def backup_history(*args):
 	download_history=open(output_dir + '/download_history.pickle','wb')
 	pickle.dump(tried_urls,download_history)
 	pickle.dump(finished_keywords, download_history)
-	pickle.dump(image_md5s, download_history)
+	copied_image_md5s = dict(image_md5s)  # To resolve a concurrency issue
+	pickle.dump(copied_image_md5s, download_history)
 	download_history.close()
 	print('history_dumped')
 	if args:
