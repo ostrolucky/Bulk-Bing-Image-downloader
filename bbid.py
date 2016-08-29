@@ -25,9 +25,13 @@ def download(url,output_dir,retry=False):
 	pool_sema.acquire() 
 	path = urllib.parse.urlsplit(url).path
 	filename = posixpath.basename(path)
+
+	# Filename manipulation
+	filename = filename.split('?')[0]		# Strip GET parameters
 	if len(filename)>40:
-		filename=filename[:36]+filename[-4:]
-	while os.path.exists(output_dir + '/' + filename):
+		name, ext = os.path.splitext(filename)
+		filename = name[:36] + ext
+	while os.path.exists(os.path.join(output_dir, filename)):
 		filename = str(random.randint(0,100)) + filename
 	in_progress.append(filename)
 	try:
@@ -49,7 +53,7 @@ def download(url,output_dir,retry=False):
 		image_md5s[md5_key] = filename
 		img_hash_lock.release()
 
-		imagefile=open(output_dir + '/' + filename,'wb')
+		imagefile=open(os.path.join(output_dir, filename),'wb')
 		imagefile.write(image)
 		imagefile.close()
 		in_progress.remove(filename)
@@ -70,7 +74,7 @@ def download(url,output_dir,retry=False):
 def removeNotFinished():
 	for filename in in_progress:
 		try:
-			os.remove(output_dir + '/' + filename)
+			os.remove(os.path.join(output_dir, filename))
 		except FileNotFoundError:
 			pass
 
@@ -98,7 +102,7 @@ def fetch_images_from_keyword(keyword,output_dir):
 	return True
 
 def backup_history(*args):
-	download_history=open(output_dir + '/download_history.pickle','wb')
+	download_history = open(os.path.join(output_dir, 'download_history.pickle'), 'wb')
 	pickle.dump(tried_urls,download_history)
 	pickle.dump(finished_keywords, download_history)
 	copied_image_md5s = dict(image_md5s)  # To resolve a concurrency issue
@@ -126,7 +130,7 @@ if __name__ == "__main__":
 	output_dir_origin = output_dir
 	signal.signal(signal.SIGINT, backup_history)
 	try:
-		download_history=open(output_dir + '/download_history.pickle','rb')
+		download_history = open(os.path.join(output_dir, 'download_history.pickle'), 'rb')
 		tried_urls=pickle.load(download_history)
 		finished_keywords=pickle.load(download_history)
 		image_md5s=pickle.load(download_history)
@@ -155,7 +159,7 @@ if __name__ == "__main__":
 			if keyword_hash in finished_keywords:
 				print('"{0}" Already downloaded'.format(keyword.strip()))
 				continue
-			output_dir = output_dir_origin + '/' + keyword.strip().replace(' ','_')
+			output_dir = os.path.join(output_dir_origin, keyword.strip().replace(' ', '_'))
 			if not os.path.exists(output_dir):
 				os.makedirs(output_dir)
 			if fetch_images_from_keyword(keyword,output_dir):
