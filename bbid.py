@@ -8,9 +8,6 @@ pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threa
 bingcount = 35 #default bing paging
 socket.setdefaulttimeout(2)
 
-# For synchronization
-img_hash_lock = threading.Lock()
-
 in_progress = []
 tried_urls = []
 finished_keywords=[]
@@ -43,15 +40,14 @@ def download(url,output_dir,retry=False):
 		md5 = hashlib.md5()
 		md5.update(image)
 		md5_key = md5.hexdigest()
-		img_hash_lock.acquire()
+		# Since there is no synch mechanism, it's not impossible to download some duplicated images
+		# But the odds are extremely small
 		if md5_key in image_md5s:
-			img_hash_lock.release()
 			print('FAIL Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
 			in_progress.remove(filename)
 			return
 
 		image_md5s[md5_key] = filename
-		img_hash_lock.release()
 
 		imagefile=open(os.path.join(output_dir, filename),'wb')
 		imagefile.write(image)
