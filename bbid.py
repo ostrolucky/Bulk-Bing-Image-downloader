@@ -15,16 +15,13 @@ failed_urls = []
 image_md5s = {}
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
 def download(url,output_dir,retry=False):
-	global tried_urls, failed_urls, image_md5s      # Is this necessary?
 	url_hash=hashlib.sha224(url.encode('utf-8')).digest()
 	if url_hash in tried_urls:
 		return
 	pool_sema.acquire() 
 	path = urllib.parse.urlsplit(url).path
-	filename = posixpath.basename(path)
+	filename = posixpath.basename(path).split('?')[0] #Strip GET parameters from filename
 
-	# Filename manipulation
-	filename = filename.split('?')[0]		# Strip GET parameters
 	if len(filename)>40:
 		name, ext = os.path.splitext(filename)
 		filename = name[:36] + ext
@@ -40,8 +37,6 @@ def download(url,output_dir,retry=False):
 		md5 = hashlib.md5()
 		md5.update(image)
 		md5_key = md5.hexdigest()
-		# Since there is no synch mechanism, it's not impossible to download some duplicated images
-		# But the odds are extremely small
 		if md5_key in image_md5s:
 			print('FAIL Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
 			in_progress.remove(filename)
@@ -101,7 +96,7 @@ def backup_history(*args):
 	download_history = open(os.path.join(output_dir, 'download_history.pickle'), 'wb')
 	pickle.dump(tried_urls,download_history)
 	pickle.dump(finished_keywords, download_history)
-	copied_image_md5s = dict(image_md5s)  # To resolve a concurrency issue
+	copied_image_md5s = dict(image_md5s)  #We are working with the copy, because length of input variable for pickle must not be changed during dumping
 	pickle.dump(copied_image_md5s, download_history)
 	download_history.close()
 	print('history_dumped')
