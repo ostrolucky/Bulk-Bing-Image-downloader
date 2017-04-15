@@ -10,7 +10,6 @@ socket.setdefaulttimeout(2)
 
 in_progress = []
 tried_urls = []
-finished_keywords=[]
 failed_urls = []
 image_md5s = {}
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
@@ -80,7 +79,7 @@ def fetch_images_from_keyword(keyword,output_dir):
 		links = re.findall('murl&quot;:&quot;(.*?)&quot;',html)
 		try:
 			if links[-1] == last:
-				break
+				return True
 			last = links[-1]
 			current += bingcount
 			for link in links:
@@ -90,12 +89,10 @@ def fetch_images_from_keyword(keyword,output_dir):
 			print('No search results for "{0}"'.format(keyword))
 			return False
 		time.sleep(0.1)
-	return True
 
 def backup_history(*args):
 	download_history = open(os.path.join(output_dir, 'download_history.pickle'), 'wb')
 	pickle.dump(tried_urls,download_history)
-	pickle.dump(finished_keywords, download_history)
 	copied_image_md5s = dict(image_md5s)  #We are working with the copy, because length of input variable for pickle must not be changed during dumping
 	pickle.dump(copied_image_md5s, download_history)
 	download_history.close()
@@ -109,8 +106,8 @@ if __name__ == "__main__":
 	parser.add_argument('-s', '--search-string', help = 'Keyword to search', required = False)
 	parser.add_argument('-f', '--search-file', help = 'Path to a file containing search strings line by line', required = False)
 	parser.add_argument('-o', '--output', help = 'Output directory', required = False)
-	parser.add_argument('--filter', help = 'Enable adult filter', action = 'store_true', required = False)
-	parser.add_argument('--no-filter', help=  'Disable adult filter', action = 'store_true', required = False)
+	parser.add_argument('--filter', help ='Enable adult filter', action = 'store_true', required = False)
+	parser.add_argument('--no-filter', help = 'Disable adult filter', action = 'store_true', required = False)
 	args = parser.parse_args()
 	if (not args.search_string) and (not args.search_file):
 		parser.error('Provide Either search string or path to file containing search strings')
@@ -123,7 +120,6 @@ if __name__ == "__main__":
 	try:
 		download_history = open(os.path.join(output_dir, 'download_history.pickle'), 'rb')
 		tried_urls=pickle.load(download_history)
-		finished_keywords=pickle.load(download_history)
 		image_md5s=pickle.load(download_history)
 		download_history.close()
 	except (OSError, IOError):
@@ -146,15 +142,10 @@ if __name__ == "__main__":
 			print("Couldn't open file {}".format(args.search_file))
 			exit(1)
 		for keyword in inputFile.readlines():
-			keyword_hash=hashlib.sha224(keyword.strip().encode('utf-8')).digest()
-			if keyword_hash in finished_keywords:
-				print('"{0}" Already downloaded'.format(keyword.strip()))
-				continue
-			output_dir = os.path.join(output_dir_origin, keyword.strip().replace(' ', '_'))
-			if not os.path.exists(output_dir):
-				os.makedirs(output_dir)
-			if fetch_images_from_keyword(keyword,output_dir):
-				finished_keywords.append(keyword_hash)
+			output_sub_dir = os.path.join(output_dir_origin, keyword.strip().replace(' ', '_'))
+			if not os.path.exists(output_sub_dir):
+				os.makedirs(output_sub_dir)
+			if fetch_images_from_keyword(keyword,output_sub_dir):
 				for failed_url in failed_urls:
 					t = threading.Thread(target = download,args = (failed_url[0],failed_url[1],True))
 					t.start()
