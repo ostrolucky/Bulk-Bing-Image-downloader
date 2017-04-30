@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket, time, hashlib, pickle, signal, imghdr
+import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, random, socket, time, hashlib, pickle, signal, imghdr
 
 #config
 output_dir = './bing' #default output dir
@@ -8,8 +8,7 @@ pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threa
 bingcount = 35 #default bing paging
 socket.setdefaulttimeout(2)
 
-in_progress = []
-tried_urls = failed_urls = []
+in_progress = tried_urls = failed_urls = []
 image_md5s = {}
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
 def download(url,output_dir,retry=False):
@@ -18,24 +17,25 @@ def download(url,output_dir,retry=False):
 	pool_sema.acquire() 
 	path = urllib.parse.urlsplit(url).path
 	filename = posixpath.basename(path).split('?')[0] #Strip GET parameters from filename
+	name, ext = os.path.splitext(filename)
+	name = name[:36]
+	filename = name + ext
 
-	if len(filename)>40:
-		name, ext = os.path.splitext(filename)
-		filename = name[:36] + ext
-	while os.path.exists(os.path.join(output_dir, filename)):
-		filename = str(random.randint(0,100)) + filename
+	i = 0
+	while os.path.exists(os.path.join(output_dir, filename)) or filename in in_progress:
+		i += 1
+		filename = "%s-%d%s" % (name, i, ext)
 	in_progress.append(filename)
 	try:
 		request=urllib.request.Request(url,None,urlopenheader)
 		image=urllib.request.urlopen(request).read()
 		if not imghdr.what(None, image):
-			print('FAIL: Invalid image format, not saving ' + filename)
+			print('FAIL: Invalid image, not saving ' + filename)
 			return
 
 		md5_key = hashlib.md5(image).hexdigest()
 		if md5_key in image_md5s:
 			print('FAIL: Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
-			in_progress.remove(filename)
 			return
 
 		image_md5s[md5_key] = filename
@@ -43,7 +43,6 @@ def download(url,output_dir,retry=False):
 		imagefile=open(os.path.join(output_dir, filename),'wb')
 		imagefile.write(image)
 		imagefile.close()
-		in_progress.remove(filename)
 		if retry:
 			print('Retry OK: '+ filename)
 		else:
@@ -56,14 +55,8 @@ def download(url,output_dir,retry=False):
 			print("FAIL: " + filename)
 			failed_urls.append((url, output_dir))
 	finally:
+		in_progress.remove(filename)
 		pool_sema.release()
-
-def removeNotFinished():
-	for filename in in_progress:
-		try:
-			os.remove(os.path.join(output_dir, filename))
-		except FileNotFoundError:
-			pass
 
 def fetch_images_from_keyword(keyword,output_dir):
 	current = 1
@@ -98,7 +91,6 @@ def backup_history(*args):
 		exit(0)
 	
 if __name__ == "__main__":
-	atexit.register(removeNotFinished)
 	parser = argparse.ArgumentParser(description = 'Bing image bulk downloader')
 	parser.add_argument('-s', '--search-string', help = 'Keyword to search', required = False)
 	parser.add_argument('-f', '--search-file', help = 'Path to a file containing search strings line by line', required = False)
