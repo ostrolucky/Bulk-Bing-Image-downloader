@@ -9,13 +9,11 @@ bingcount = 35 #default bing paging
 socket.setdefaulttimeout(2)
 
 in_progress = []
-tried_urls = []
-failed_urls = []
+tried_urls = failed_urls = []
 image_md5s = {}
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
 def download(url,output_dir,retry=False):
-	url_hash=hashlib.sha224(url.encode('utf-8')).digest()
-	if url_hash in tried_urls:
+	if url in tried_urls:
 		return
 	pool_sema.acquire() 
 	path = urllib.parse.urlsplit(url).path
@@ -34,9 +32,7 @@ def download(url,output_dir,retry=False):
 			print('FAIL: Invalid image format, not saving ' + filename)
 			return
 
-		md5 = hashlib.md5()
-		md5.update(image)
-		md5_key = md5.hexdigest()
+		md5_key = hashlib.md5(image).hexdigest()
 		if md5_key in image_md5s:
 			print('FAIL: Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
 			in_progress.remove(filename)
@@ -52,7 +48,7 @@ def download(url,output_dir,retry=False):
 			print('Retry OK: '+ filename)
 		else:
 			print("OK: " + filename)
-		tried_urls.append(url_hash)
+		tried_urls.append(url)
 	except Exception as e:
 		if retry:
 			print('Retry Fail: ' + filename)
