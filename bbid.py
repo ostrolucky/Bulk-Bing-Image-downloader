@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket, time, hashlib, pickle, signal, subprocess
+import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, atexit, random, socket, time, hashlib, pickle, signal, imghdr
 
 #config
 output_dir = './bing' #default output dir
@@ -30,14 +30,15 @@ def download(url,output_dir,retry=False):
 	try:
 		request=urllib.request.Request(url,None,urlopenheader)
 		image=urllib.request.urlopen(request).read()
-		if len(image)==0:
-			print('no image')
+		if not imghdr.what(None, image):
+			print('FAIL: Invalid image format, not saving ' + filename)
+			return
 
 		md5 = hashlib.md5()
 		md5.update(image)
 		md5_key = md5.hexdigest()
 		if md5_key in image_md5s:
-			print('FAIL Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
+			print('FAIL: Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
 			in_progress.remove(filename)
 			return
 
@@ -48,15 +49,15 @@ def download(url,output_dir,retry=False):
 		imagefile.close()
 		in_progress.remove(filename)
 		if retry:
-			print('Retry OK '+ filename)
+			print('Retry OK: '+ filename)
 		else:
-			print("OK " + filename)
+			print("OK: " + filename)
 		tried_urls.append(url_hash)
 	except Exception as e:
 		if retry:
-			print('Retry Fail ' + filename)
+			print('Retry Fail: ' + filename)
 		else:
-			print("FAIL " + filename)
+			print("FAIL: " + filename)
 			failed_urls.append((url, output_dir))
 	finally:
 		pool_sema.release()
