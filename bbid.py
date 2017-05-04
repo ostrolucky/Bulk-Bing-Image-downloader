@@ -8,10 +8,10 @@ pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threa
 bingcount = 35 #default bing paging
 socket.setdefaulttimeout(2)
 
-in_progress = tried_urls = failed_urls = []
+in_progress = tried_urls = []
 image_md5s = {}
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
-def download(url,output_dir,retry=False):
+def download(url,output_dir):
 	if url in tried_urls:
 		return
 	pool_sema.acquire() 
@@ -43,17 +43,10 @@ def download(url,output_dir,retry=False):
 		imagefile=open(os.path.join(output_dir, filename),'wb')
 		imagefile.write(image)
 		imagefile.close()
-		if retry:
-			print('Retry OK: '+ filename)
-		else:
-			print("OK: " + filename)
+		print("OK: " + filename)
 		tried_urls.append(url)
 	except Exception as e:
-		if retry:
-			print('Retry Fail: ' + filename)
-		else:
-			print("FAIL: " + filename)
-			failed_urls.append((url, output_dir))
+		print("FAIL: " + filename)
 	finally:
 		in_progress.remove(filename)
 		pool_sema.release()
@@ -134,10 +127,6 @@ if __name__ == "__main__":
 			output_sub_dir = os.path.join(output_dir_origin, keyword.strip().replace(' ', '_'))
 			if not os.path.exists(output_sub_dir):
 				os.makedirs(output_sub_dir)
-			if fetch_images_from_keyword(keyword,output_sub_dir):
-				for failed_url in failed_urls:
-					t = threading.Thread(target = download,args = (failed_url[0],failed_url[1],True))
-					t.start()
-				failed_urls=[]
+			fetch_images_from_keyword(keyword,output_sub_dir)
 			backup_history()
 		inputFile.close()
