@@ -10,7 +10,7 @@ socket.setdefaulttimeout(2)
 
 in_progress = tried_urls = []
 image_md5s = {}
-urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'}
+urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'}
 def download(url,output_dir):
 	if url in tried_urls:
 		return
@@ -62,7 +62,7 @@ def fetch_images_from_keyword(keyword,output_dir):
 		links = re.findall('murl&quot;:&quot;(.*?)&quot;',html)
 		try:
 			if links[-1] == last:
-				return True
+				return
 			last = links[-1]
 			current += bingcount
 			for link in links:
@@ -70,7 +70,7 @@ def fetch_images_from_keyword(keyword,output_dir):
 				t.start()
 		except IndexError:
 			print('No search results for "{0}"'.format(keyword))
-			return False
+			return
 		time.sleep(0.1)
 
 def backup_history(*args):
