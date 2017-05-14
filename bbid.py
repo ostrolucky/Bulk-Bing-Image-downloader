@@ -115,7 +115,6 @@ if __name__ == "__main__":
 	elif args.filter:
 		adlt = ''
 	if args.search_string:
-		keyword = args.search_string
 		fetch_images_from_keyword(args.search_string,output_dir)
 	elif args.search_file:
 		try:
