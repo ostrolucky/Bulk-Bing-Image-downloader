@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, urllib.request, re, threading, posixpath, urllib.parse, argparse, random, socket, time, hashlib, pickle, signal, imghdr
+import os, urllib.request, re, threading, posixpath, urllib.parse, argparse, socket, time, hashlib, pickle, signal, imghdr
 
 #config
 output_dir = './bing' #default output dir
