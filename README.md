@@ -11,7 +11,6 @@ Bulk Bing Image Downloader
 
 ### Usage
 ```
-chmod +x bbid.py
 ./bbid.py [-h] [-s SEARCH_STRING] [-f SEARCH_FILE] [-o OUTPUT] [--filter] [--no-filter]
 ```
 ### Example
