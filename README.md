@@ -13,6 +13,7 @@ Bulk Bing Image Downloader
 ```
 bbid.py [-h] [-s SEARCH_STRING] [-f SEARCH_FILE] [-o OUTPUT]
                [--adult-filter-on] [--adult-filter-off] [--filters FILTERS]
+               [--limit LIMIT]
 
 ```
 ### Example

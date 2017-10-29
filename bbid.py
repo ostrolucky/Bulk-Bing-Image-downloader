@@ -51,7 +51,7 @@ def download(url,output_dir):
 		in_progress.remove(filename)
 		pool_sema.release()
 
-def fetch_images_from_keyword(keyword,output_dir, filters):
+def fetch_images_from_keyword(keyword,output_dir, filters, limit):
 	current = 0
 	last = ''
 	while True:
@@ -63,11 +63,13 @@ def fetch_images_from_keyword(keyword,output_dir, filters):
 		try:
 			if links[-1] == last:
 				return
-			last = links[-1]
-			current += bingcount
-			for link in links:
+			for index, link in enumerate(links):
+				if limit is not None and current + index >= limit:
+					return
 				t = threading.Thread(target = download,args = (link,output_dir))
 				t.start()
+			last = links[-1]
+			current += bingcount
 		except IndexError:
 			print('No search results for "{0}"'.format(keyword))
 			return
@@ -91,6 +93,7 @@ if __name__ == "__main__":
 	parser.add_argument('--adult-filter-on', help ='Enable adult filter', action = 'store_true', required = False)
 	parser.add_argument('--adult-filter-off', help = 'Disable adult filter', action = 'store_true', required = False)
 	parser.add_argument('--filters', help = 'Any query based filters you want to append when searching for images, e.g. +filterui:license-L1', required = False)
+	parser.add_argument('--limit', help = 'Make sure not to search for more than specified amount of images.', required = False, type = int)
 	args = parser.parse_args()
 	if (not args.search_string) and (not args.search_file):
 		parser.error('Provide Either search string or path to file containing search strings')
@@ -116,7 +119,7 @@ if __name__ == "__main__":
 	elif args.adult_filter_on:
 		adlt = ''
 	if args.search_string:
-		fetch_images_from_keyword(args.search_string,output_dir, args.filters)
+		fetch_images_from_keyword(args.search_string,output_dir, args.filters, args.limit)
 	elif args.search_file:
 		try:
 			inputFile=open(args.search_file)
@@ -127,6 +130,6 @@ if __name__ == "__main__":
 			output_sub_dir = os.path.join(output_dir_origin, keyword.strip().replace(' ', '_'))
 			if not os.path.exists(output_sub_dir):
 				os.makedirs(output_sub_dir)
-			fetch_images_from_keyword(keyword,output_sub_dir, args.filters)
+			fetch_images_from_keyword(keyword,output_sub_dir, args.filters, args.limit)
 			backup_history()
 		inputFile.close()
