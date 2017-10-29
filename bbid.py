@@ -51,11 +51,11 @@ def download(url,output_dir):
 		in_progress.remove(filename)
 		pool_sema.release()
 
-def fetch_images_from_keyword(keyword,output_dir):
-	current = 1
+def fetch_images_from_keyword(keyword,output_dir, filters):
+	current = 0
 	last = ''
 	while True:
-		request_url='https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&async=content&first=' + str(current) + '&adlt=' + adlt
+		request_url='https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&first=' + str(current) + '&adlt=' + adlt + '&qft=' + ('' if filters is None else filters)
 		request=urllib.request.Request(request_url,None,headers=urlopenheader)
 		response=urllib.request.urlopen(request)
 		html = response.read().decode('utf8')
@@ -88,8 +88,9 @@ if __name__ == "__main__":
 	parser.add_argument('-s', '--search-string', help = 'Keyword to search', required = False)
 	parser.add_argument('-f', '--search-file', help = 'Path to a file containing search strings line by line', required = False)
 	parser.add_argument('-o', '--output', help = 'Output directory', required = False)
-	parser.add_argument('--filter', help ='Enable adult filter', action = 'store_true', required = False)
-	parser.add_argument('--no-filter', help = 'Disable adult filter', action = 'store_true', required = False)
+	parser.add_argument('--adult-filter-on', help ='Enable adult filter', action = 'store_true', required = False)
+	parser.add_argument('--adult-filter-off', help = 'Disable adult filter', action = 'store_true', required = False)
+	parser.add_argument('--filters', help = 'Any query based filters you want to append when searching for images, e.g. +filterui:license-L1', required = False)
 	args = parser.parse_args()
 	if (not args.search_string) and (not args.search_file):
 		parser.error('Provide Either search string or path to file containing search strings')
@@ -110,12 +111,12 @@ if __name__ == "__main__":
 		adlt = ''
 	else:
 		adlt = 'off'
-	if args.no_filter:
+	if args.adult_filter_off:
 		adlt = 'off'
-	elif args.filter:
+	elif args.adult_filter_on:
 		adlt = ''
 	if args.search_string:
-		fetch_images_from_keyword(args.search_string,output_dir)
+		fetch_images_from_keyword(args.search_string,output_dir, args.filters)
 	elif args.search_file:
 		try:
 			inputFile=open(args.search_file)
@@ -126,6 +127,6 @@ if __name__ == "__main__":
 			output_sub_dir = os.path.join(output_dir_origin, keyword.strip().replace(' ', '_'))
 			if not os.path.exists(output_sub_dir):
 				os.makedirs(output_sub_dir)
-			fetch_images_from_keyword(keyword,output_sub_dir)
+			fetch_images_from_keyword(keyword,output_sub_dir, args.filters)
 			backup_history()
 		inputFile.close()
