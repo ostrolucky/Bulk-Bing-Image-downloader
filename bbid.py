@@ -5,7 +5,6 @@ import os, urllib.request, re, threading, posixpath, urllib.parse, argparse, soc
 output_dir = './bing' #default output dir
 adult_filter = True #Do not disable adult filter by default
 pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threads
-bingcount = 35 #default bing paging
 socket.setdefaulttimeout(2)
 
 in_progress = tried_urls = []
@@ -55,7 +54,7 @@ def fetch_images_from_keyword(keyword,output_dir, filters, limit):
 	current = 0
 	last = ''
 	while True:
-		request_url='https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&first=' + str(current) + '&adlt=' + adlt + '&qft=' + ('' if filters is None else filters)
+		request_url='https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&first=' + str(current) + '&count=35&adlt=' + adlt + '&qft=' + ('' if filters is None else filters)
 		request=urllib.request.Request(request_url,None,headers=urlopenheader)
 		response=urllib.request.urlopen(request)
 		html = response.read().decode('utf8')
@@ -68,8 +67,8 @@ def fetch_images_from_keyword(keyword,output_dir, filters, limit):
 					return
 				t = threading.Thread(target = download,args = (link,output_dir))
 				t.start()
+				current += 1
 			last = links[-1]
-			current += bingcount
 		except IndexError:
 			print('No search results for "{0}"'.format(keyword))
 			return
