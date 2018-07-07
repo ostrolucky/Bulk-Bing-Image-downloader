@@ -4,13 +4,13 @@ import os, urllib.request, re, threading, posixpath, urllib.parse, argparse, soc
 #config
 output_dir = './bing' #default output dir
 adult_filter = True #Do not disable adult filter by default
-pool_sema = threading.BoundedSemaphore(value = 20) #max number of download threads
 socket.setdefaulttimeout(2)
 
 in_progress = tried_urls = []
 image_md5s = {}
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
-def download(url,output_dir):
+
+def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
     if url in tried_urls:
         return
     pool_sema.acquire()
@@ -50,7 +50,7 @@ def download(url,output_dir):
         in_progress.remove(filename)
         pool_sema.release()
 
-def fetch_images_from_keyword(keyword,output_dir, filters, limit):
+def fetch_images_from_keyword(pool_sema: threading.Semaphore, keyword: str, output_dir: str, filters: str, limit: int):
     current = 0
     last = ''
     while True:
@@ -65,7 +65,7 @@ def fetch_images_from_keyword(keyword,output_dir, filters, limit):
             for index, link in enumerate(links):
                 if limit is not None and current + index >= limit:
                     return
-                t = threading.Thread(target = download,args = (link,output_dir))
+                t = threading.Thread(target = download,args = (pool_sema, link, output_dir))
                 t.start()
                 current += 1
             last = links[-1]
@@ -93,6 +93,7 @@ if __name__ == "__main__":
     parser.add_argument('--adult-filter-off', help = 'Disable adult filter', action = 'store_true', required = False)
     parser.add_argument('--filters', help = 'Any query based filters you want to append when searching for images, e.g. +filterui:license-L1', required = False)
     parser.add_argument('--limit', help = 'Make sure not to search for more than specified amount of images.', required = False, type = int)
+    parser.add_argument('--threads', help = 'Number of threads', type = int, default = 20)
     args = parser.parse_args()
     if (not args.search_string) and (not args.search_file):
         parser.error('Provide Either search string or path to file containing search strings')
@@ -117,8 +118,9 @@ if __name__ == "__main__":
         adlt = 'off'
     elif args.adult_filter_on:
         adlt = ''
+    pool_sema = threading.BoundedSemaphore(args.threads)
     if args.search_string:
-        fetch_images_from_keyword(args.search_string,output_dir, args.filters, args.limit)
+        fetch_images_from_keyword(pool_sema, args.search_string,output_dir, args.filters, args.limit)
     elif args.search_file:
         try:
             inputFile=open(args.search_file)
@@ -129,6 +131,6 @@ if __name__ == "__main__":
             output_sub_dir = os.path.join(output_dir_origin, keyword.strip().replace(' ', '_'))
             if not os.path.exists(output_sub_dir):
                 os.makedirs(output_sub_dir)
-            fetch_images_from_keyword(keyword,output_sub_dir, args.filters, args.limit)
+            fetch_images_from_keyword(pool_sema, keyword,output_sub_dir, args.filters, args.limit)
             backup_history()
         inputFile.close()
