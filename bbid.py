@@ -9,7 +9,7 @@ socket.setdefaulttimeout(2)
 
 in_progress = tried_urls = []
 image_md5s = {}
-urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'}
+urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
 def download(url,output_dir):
     if url in tried_urls:
         return
