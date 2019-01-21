@@ -2,7 +2,7 @@ Bulk Bing Image Downloader
 ==========================
 *Bulk Bing Image Downloader (BBID)* is downloader which:
 - downloads full-size images from bing image search results
-- is multithreaded
+- is asynchronous -> downloads images super fast
 - is crossplatform
 - bypasses bing API
 - has option to disable adult content filtering
