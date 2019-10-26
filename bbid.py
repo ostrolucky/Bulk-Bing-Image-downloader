@@ -6,7 +6,7 @@ output_dir = './bing' #default output dir
 adult_filter = True #Do not disable adult filter by default
 socket.setdefaulttimeout(2)
 
-in_progress = tried_urls = []
+tried_urls = []
 image_md5s = {}
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
 
@@ -21,10 +21,9 @@ def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
     filename = name + ext
 
     i = 0
-    while os.path.exists(os.path.join(output_dir, filename)) or filename in in_progress:
+    while os.path.exists(os.path.join(output_dir, filename)):
         i += 1
         filename = "%s-%d%s" % (name, i, ext)
-    in_progress.append(filename)
     try:
         request=urllib.request.Request(url,None,urlopenheader)
         image=urllib.request.urlopen(request).read()
@@ -47,7 +46,6 @@ def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
     except Exception as e:
         print("FAIL: " + filename)
     finally:
-        in_progress.remove(filename)
         pool_sema.release()
 
 def fetch_images_from_keyword(pool_sema: threading.Semaphore, keyword: str, output_dir: str, filters: str, limit: int):
