@@ -20,21 +20,25 @@ def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
     name = name[:36]
     filename = name + ext
 
-    i = 0
-    while os.path.exists(os.path.join(output_dir, filename)):
-        i += 1
-        filename = "%s-%d%s" % (name, i, ext)
     try:
         request=urllib.request.Request(url,None,urlopenheader)
         image=urllib.request.urlopen(request).read()
         if not imghdr.what(None, image):
-            print('FAIL: Invalid image, not saving ' + filename)
+            print('Invalid image, not saving ' + filename)
             return
 
         md5_key = hashlib.md5(image).hexdigest()
         if md5_key in image_md5s:
-            print('FAIL: Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
+            print('Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
             return
+
+        i = 0
+        while os.path.exists(os.path.join(output_dir, filename)):
+            if hashlib.md5(open(os.path.join(output_dir, filename), 'rb').read()).hexdigest() == md5_key:
+                print('Already downloaded ' + filename + ', not saving')
+                return
+            i += 1
+            filename = "%s-%d%s" % (name, i, ext)
 
         image_md5s[md5_key] = filename
 
