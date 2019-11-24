@@ -8,12 +8,16 @@ socket.setdefaulttimeout(2)
 
 tried_urls = []
 image_md5s = {}
+in_progress = 0
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
 
 def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
+    global in_progress
+
     if url in tried_urls:
         return
     pool_sema.acquire()
+    in_progress += 1
     path = urllib.parse.urlsplit(url).path
     filename = posixpath.basename(path).split('?')[0] #Strip GET parameters from filename
     name, ext = os.path.splitext(filename)
@@ -51,11 +55,17 @@ def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
         print("FAIL: " + filename)
     finally:
         pool_sema.release()
+        in_progress -= 1
 
 def fetch_images_from_keyword(pool_sema: threading.Semaphore, keyword: str, output_dir: str, filters: str, limit: int):
     current = 0
     last = ''
     while True:
+        time.sleep(0.1)
+
+        if in_progress > 10:
+            continue
+
         request_url='https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&first=' + str(current) + '&count=35&adlt=' + adlt + '&qft=' + ('' if filters is None else filters)
         request=urllib.request.Request(request_url,None,headers=urlopenheader)
         response=urllib.request.urlopen(request)
@@ -74,7 +84,6 @@ def fetch_images_from_keyword(pool_sema: threading.Semaphore, keyword: str, outp
         except IndexError:
             print('No search results for "{0}"'.format(keyword))
             return
-        time.sleep(0.1)
 
 def backup_history(*args):
     download_history = open(os.path.join(output_dir, 'download_history.pickle'), 'wb')
@@ -135,4 +144,5 @@ if __name__ == "__main__":
                 os.makedirs(output_sub_dir)
             fetch_images_from_keyword(pool_sema, keyword,output_sub_dir, args.filters, args.limit)
             backup_history()
+            time.sleep(10)
         inputFile.close()
