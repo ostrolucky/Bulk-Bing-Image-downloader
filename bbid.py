@@ -21,7 +21,7 @@ def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
     path = urllib.parse.urlsplit(url).path
     filename = posixpath.basename(path).split('?')[0] #Strip GET parameters from filename
     name, ext = os.path.splitext(filename)
-    name = name[:36]
+    name = name[:36].strip()
     filename = name + ext
 
     try:
