@@ -19,6 +19,9 @@ bbid.py [-h] [-s SEARCH_STRING] [-f SEARCH_FILE] [-o OUTPUT]
 ### Example
 `./bbid.py -s "hello world"`
 
+Windows users
+`python ./bbid.py -s "hello world"`
+
 ### Advanced filtering
 You might want to apply some of Bing's filters, such as filter by license, image size, etc.
 BBID doesn't expose to you nice, human readable variants of those, but allows you to utilize all filters exposed by Bing website.
