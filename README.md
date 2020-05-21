@@ -14,8 +14,9 @@ Bulk Bing Image Downloader
 bbid.py [-h] [-s SEARCH_STRING] [-f SEARCH_FILE] [-o OUTPUT]
                [--adult-filter-on] [--adult-filter-off] [--filters FILTERS]
                [--limit LIMIT]
-
 ```
+Or if you would like, you can watch [YouTube tutorial](https://youtu.be/nJ4CixTsYQI)
+
 ### Example
 `./bbid.py -s "hello world"`
 
