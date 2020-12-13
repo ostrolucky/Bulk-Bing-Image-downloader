@@ -89,7 +89,7 @@ def get_filter_type_help():
         for idx, key in enumerate(image_filter_types[filter].keys()):
             help_text += " " * 6 + str(idx) + " " + key + "\n"
         help_text += "\n"
-        help_text += "Filter Example --filters Sizes[3];ImageTypes[1];License[2]\n"
+    help_text += "Filter Example --filters Sizes[3];ImageTypes[1];License[2]\n"
     return help_text
 
 

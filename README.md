@@ -8,6 +8,7 @@ Bulk Bing Image Downloader
 - has option to disable adult content filtering
 - is written in python 3.
 - uses SSL connection
+- human readable filters
 
 ### Usage
 ```
@@ -24,14 +25,15 @@ Windows users
 `python ./bbid.py -s "hello world"`
 
 ### Advanced filtering
-You might want to apply some of Bing's filters, such as filter by license, image size, etc.
-BBID doesn't expose to you nice, human readable variants of those, but allows you to utilize all filters exposed by Bing website.
-All you need to do is apply filters you want via Bing website and copy them from URL. They are located after `&qft=` and before `&`.
+You might want to apply some of Bing's filters, such as filter by license, image size, etc. Run the program without any parameters and you will get a list of filter options.
 
-For example, when you search for `code` and apply filters `past week` and image size `large`, URL you will see will be
-`http://www.bing.com/images/search?sp=-1&pq=code&sc=0-0&sk=&cvid=39A810C4AF314AB6A5A923F4FB6E5282&q=code&qft=+filterui:age-lt10080+filterui:imagesize-large&FORM=IRFLTR`
+Say, for example, you only want images with the License type of "Public Domain"
 
-Filters string you want to extract from this URL is `+filterui:age-lt10080+filterui:imagesize-large`. You can then apply them in BBID with --filters, e.g.
-```
-./bbid.py -s code --filters +filterui:age-lt10080+filterui:imagesize-large
-```
+
+
+Or lets say you want public domain clipart
+
+--filters License[2];ImageTypes[2]
+
+- Use the corresponding filter type Sizes, Colors, ImageTypes, Layouts, People, Age and License with the selection in square brackets []
+- Each additional filter type should be seperated by only a semicolon ; without spaces as shown in the above example
