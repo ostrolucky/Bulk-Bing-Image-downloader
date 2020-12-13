@@ -29,9 +29,9 @@ You might want to apply some of Bing's filters, such as filter by license, image
 
 Say, for example, you only want images with the License type of "Public Domain"
 
+--filters License[2]
 
-
-Or lets say you want public domain clipart
+Or you want public domain clipart
 
 --filters License[2];ImageTypes[2]
 
