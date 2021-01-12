@@ -15,6 +15,7 @@ def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
     global in_progress
 
     if url in tried_urls:
+        print('Already checked ' + url + ', skipped')
         return
     pool_sema.acquire()
     in_progress += 1
