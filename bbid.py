@@ -11,14 +11,15 @@ image_md5s = {}
 in_progress = 0
 urlopenheader={ 'User-Agent' : 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
 
-def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
+def download(pool_sema: threading.Semaphore, img_sema:threading.Semaphore, url: str, output_dir: str, limit:int):
     global in_progress
 
     if url in tried_urls:
-        print('Already checked ' + url + ', skipped')
+        print('SKIP: Already checked url, skipping')
         return
     pool_sema.acquire()
     in_progress += 1
+    acquired_img_sema = False
     path = urllib.parse.urlsplit(url).path
     filename = posixpath.basename(path).split('?')[0] #Strip GET parameters from filename
     name, ext = os.path.splitext(filename)
@@ -29,36 +30,43 @@ def download(pool_sema: threading.Semaphore, url: str, output_dir: str):
         request=urllib.request.Request(url,None,urlopenheader)
         image=urllib.request.urlopen(request).read()
         if not imghdr.what(None, image):
-            print('Invalid image, not saving ' + filename)
+            print('SKIP: Invalid image, not saving ' + filename)
             return
 
         md5_key = hashlib.md5(image).hexdigest()
         if md5_key in image_md5s:
-            print('Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
+            print('SKIP: Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + filename)
             return
 
         i = 0
         while os.path.exists(os.path.join(output_dir, filename)):
             if hashlib.md5(open(os.path.join(output_dir, filename), 'rb').read()).hexdigest() == md5_key:
-                print('Already downloaded ' + filename + ', not saving')
+                print('SKIP: Already downloaded ' + filename + ', not saving')
                 return
             i += 1
             filename = "%s-%d%s" % (name, i, ext)
 
         image_md5s[md5_key] = filename
 
+        img_sema.acquire()
+        acquired_img_sema = True
+        if limit is not None and len(tried_urls) >= limit:
+            return
+
         imagefile=open(os.path.join(output_dir, filename),'wb')
         imagefile.write(image)
         imagefile.close()
-        print("OK: " + filename)
+        print(" OK : " + filename)
         tried_urls.append(url)
     except Exception as e:
         print("FAIL: " + filename)
     finally:
         pool_sema.release()
+        if acquired_img_sema:
+            img_sema.release()
         in_progress -= 1
 
-def fetch_images_from_keyword(pool_sema: threading.Semaphore, keyword: str, output_dir: str, filters: str, limit: int):
+def fetch_images_from_keyword(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, keyword: str, output_dir: str, filters: str, limit: int):
     current = 0
     last = ''
     while True:
@@ -76,14 +84,14 @@ def fetch_images_from_keyword(pool_sema: threading.Semaphore, keyword: str, outp
             if links[-1] == last:
                 return
             for index, link in enumerate(links):
-                if limit is not None and current >= limit:
+                if limit is not None and len(tried_urls) >= limit:
                     return
-                t = threading.Thread(target = download,args = (pool_sema, link, output_dir))
+                t = threading.Thread(target = download,args = (pool_sema, img_sema, link, output_dir, limit))
                 t.start()
                 current += 1
             last = links[-1]
         except IndexError:
-            print('No search results for "{0}"'.format(keyword))
+            print('FAIL: No search results for "{0}"'.format(keyword))
             return
 
 def backup_history(*args):
@@ -131,13 +139,14 @@ if __name__ == "__main__":
     elif args.adult_filter_on:
         adlt = ''
     pool_sema = threading.BoundedSemaphore(args.threads)
+    img_sema = threading.Semaphore()
     if args.search_string:
-        fetch_images_from_keyword(pool_sema, args.search_string,output_dir, args.filters, args.limit)
+        fetch_images_from_keyword(pool_sema, img_sema, args.search_string, output_dir, args.filters, args.limit)
     elif args.search_file:
         try:
             inputFile=open(args.search_file)
         except (OSError, IOError):
-            print("Couldn't open file {}".format(args.search_file))
+            print("FAIL: Couldn't open file {}".format(args.search_file))
             exit(1)
         for keyword in inputFile.readlines():
             output_sub_dir = os.path.join(output_dir_origin, keyword.strip().replace(' ', '_'))
