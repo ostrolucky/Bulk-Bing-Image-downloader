@@ -175,7 +175,7 @@ if __name__ == "__main__":
             output_sub_dir = os.path.join(output_dir_origin, keyword.strip().replace(' ', '_'))
             if not os.path.exists(output_sub_dir):
                 os.makedirs(output_sub_dir)
-            fetch_images_from_keyword(pool_sema, keyword, output_sub_dir, args.filters, args.limit)
+            fetch_images_from_keyword(pool_sema, img_sema, keyword, output_sub_dir, args.filters, args.limit)
             backup_history()
             time.sleep(10)
         inputFile.close()
