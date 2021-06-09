@@ -101,7 +101,7 @@ def fetch_images_from_keyword(pool_sema: threading.Semaphore, img_sema: threadin
                 return
             for index, link in enumerate(links):
                 if limit is not None and len(tried_urls) >= limit:
-                    return
+                    exit(0)
                 t = threading.Thread(target=download, args=(pool_sema, img_sema, link, output_dir, limit))
                 t.start()
                 current += 1
