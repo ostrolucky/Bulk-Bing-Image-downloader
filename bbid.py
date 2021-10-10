@@ -15,13 +15,12 @@ import urllib.request
 
 # config
 output_dir = './bing'  # default output dir
-adult_filter = True  # Do not disable adult filter by default
 socket.setdefaulttimeout(2)
 
 tried_urls = []
 image_md5s = {}
 in_progress = 0
-urlopenheader = {'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
+urlopenheader = {'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0'}
 
 
 def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url: str, output_dir: str, limit: int):
@@ -91,7 +90,7 @@ def fetch_images_from_keyword(pool_sema: threading.Semaphore, img_sema: threadin
             continue
 
         request_url = 'https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(keyword) + '&first=' + str(
-            current) + '&count=35&adlt=' + adlt + '&qft=' + ('' if filters is None else filters)
+            current) + '&count=35&qft=' + ('' if filters is None else filters)
         request = urllib.request.Request(request_url, None, headers=urlopenheader)
         response = urllib.request.urlopen(request)
         html = response.read().decode('utf8')
@@ -129,7 +128,6 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--search-file', help='Path to a file containing search strings line by line',
                         required=False)
     parser.add_argument('-o', '--output', help='Output directory', required=False)
-    parser.add_argument('--adult-filter-on', help='Enable adult filter', action='store_true', required=False)
     parser.add_argument('--adult-filter-off', help='Disable adult filter', action='store_true', required=False)
     parser.add_argument('--filters',
                         help='Any query based filters you want to append when searching for images, e.g. +filterui:license-L1',
@@ -153,14 +151,8 @@ if __name__ == "__main__":
         download_history.close()
     except (OSError, IOError):
         tried_urls = []
-    if adult_filter:
-        adlt = ''
-    else:
-        adlt = 'off'
     if args.adult_filter_off:
-        adlt = 'off'
-    elif args.adult_filter_on:
-        adlt = ''
+        urlopenheader['Cookie'] = 'SRCHHPGUSR=ADLT=OFF'
     pool_sema = threading.BoundedSemaphore(args.threads)
     img_sema = threading.Semaphore()
     if args.search_string:
