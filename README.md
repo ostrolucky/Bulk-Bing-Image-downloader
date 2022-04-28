@@ -9,19 +9,42 @@ Bulk Bing Image Downloader
 - is written in python 3.
 - uses SSL connection
 
+## Installation
+
+```sh
+pip install git+https://github.com/FarisHijazi/Bulk-Bing-Image-downloader
+```
+
 ### Usage
 ```
-bbid.py [-h] [-s SEARCH_STRING] [-f SEARCH_FILE] [-o OUTPUT]
-               [--adult-filter-on] [--adult-filter-off] [--filters FILTERS]
-               [--limit LIMIT]
+usage: bbid.py [-h] [-f] [-o OUTPUT] [-a] [-g] [--filters FILTERS] [--limit LIMIT] [-t THREADS]
+               search_string [search_string ...]
+
+Bing image bulk downloader
+
+positional arguments:
+  search_string         Keyword to search
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f, --search-file     search-string is a path to a file containing search strings line by line
+  -o OUTPUT, --output OUTPUT
+                        Output directory
+  -a, --adult-filter-off
+                        Disable adult filter
+  -g, --animated-gif    Disable adult filter
+  --filters FILTERS     Any query based filters you want to append when searching for images, e.g. +filterui:license-L1  
+  --limit LIMIT         Make sure not to search for more than specified amount of images.
+  -t THREADS, --threads THREADS
+                        Number of threads
 ```
 Or if you would like, you can watch [YouTube tutorial](https://youtu.be/nJ4CixTsYQI)
 
 ### Example
-`./bbid.py -s "hello world"`
 
-Windows users
-`python ./bbid.py -s "hello world"`
+(no more need to surround your search with quotes)
+
+`bbid hello world`
 
 ### Advanced filtering
 You might want to apply some of Bing's filters, such as filter by license, image size, etc.
@@ -33,5 +56,14 @@ For example, when you search for `code` and apply filters `past week` and image 
 
 Filters string you want to extract from this URL is `+filterui:age-lt10080+filterui:imagesize-large`. You can then apply them in BBID with --filters, e.g.
 ```
-./bbid.py -s code --filters +filterui:age-lt10080+filterui:imagesize-large
+bbid code --filters +filterui:age-lt10080+filterui:imagesize-large
 ```
+
+### Changelog
+
+changes over [original repo](https://github.com/ostrolucky/Bulk-Bing-Image-downloader):
+- added ability to install with pip
+- now parses all metadata of the images, now the images are saved with the names of the search result as shown in bing
+- searching no longer requires quotes or `-s`
+  -  before: `bidd -s 'hello world'`
+  -  now:....  `bidd hello world` 
