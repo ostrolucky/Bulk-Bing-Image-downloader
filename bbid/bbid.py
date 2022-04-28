@@ -12,6 +12,9 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+import unicodedata
+from io import BytesIO
+
 
 # config
 socket.setdefaulttimeout(2)
@@ -22,6 +25,22 @@ image_md5s = {}
 in_progress = 0
 urlopenheader = {'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0'}
 
+
+def slugify(value, allow_unicode=False):
+    """
+    Taken from https://github.com/django/django/blob/master/django/utils/text.py
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
+    dashes to single dashes. Remove characters that aren't alphanumerics,
+    underscores, or hyphens. Convert to lowercase. Also strip leading and
+    trailing whitespace, dashes, and underscores.
+    """
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value.lower())
+    return re.sub(r'[-\s]+', '-', value).strip('-_')
 
 def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url: str, output_dir: str, limit: int, name=''):
     global tried_urls
@@ -40,15 +59,20 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
     
     if name:
         name_ = name
-    name_ = name_[:36].strip()
+    name_ = name_.strip()[:36].strip()
+    name_ = slugify(name_)
+    if not ext:
+        ext = '.gif'
     filename = (name_ + ext).replace('.gifv', '.gif')
 
     try:
         request = urllib.request.Request(url, None, urlopenheader)
         image = urllib.request.urlopen(request).read()
-        if not imghdr.what(None, image) or not len(image):
+        imgtype = imghdr.what(BytesIO(image), image)
+        if not imgtype:
             print('SKIP: Invalid image, not saving ' + filename)
             return
+        filename = (name_ + ext).replace('.gifv', '.gif')
 
         md5_key = hashlib.md5(image).hexdigest()
         if md5_key in image_md5s:
@@ -166,7 +190,7 @@ def main():
     args = parser.parse_args()
     print(vars(args))
     args.search_string = ' '.join(args.search_string)
-    output_dir = args.search_string
+
     if args.output:
         output_dir = args.output
     if not os.path.exists(output_dir):
