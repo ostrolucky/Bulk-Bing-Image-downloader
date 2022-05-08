@@ -42,8 +42,6 @@ Or if you would like, you can watch [YouTube tutorial](https://youtu.be/nJ4CixTs
 
 ### Example
 
-(no more need to surround your search with quotes)
-
 `bbid hello world`
 
 ### Advanced filtering
@@ -58,12 +56,3 @@ Filters string you want to extract from this URL is `+filterui:age-lt10080+filte
 ```
 bbid code --filters +filterui:age-lt10080+filterui:imagesize-large
 ```
-
-### Changelog
-
-changes over [original repo](https://github.com/ostrolucky/Bulk-Bing-Image-downloader):
-- added ability to install with pip
-- now parses all metadata of the images, now the images are saved with the names of the search result as shown in bing
-- searching no longer requires quotes or `-s`
-  -  before: `bidd -s 'hello world'`
-  -  now:....  `bidd hello world` 

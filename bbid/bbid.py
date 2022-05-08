@@ -12,7 +12,6 @@ import threading
 import time
 import urllib.parse
 import urllib.request
-import unicodedata
 from io import BytesIO
 
 
@@ -26,23 +25,7 @@ in_progress = 0
 urlopenheader = {'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0'}
 
 
-def slugify(value, allow_unicode=False):
-    """
-    Taken from https://github.com/django/django/blob/master/django/utils/text.py
-    Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
-    dashes to single dashes. Remove characters that aren't alphanumerics,
-    underscores, or hyphens. Convert to lowercase. Also strip leading and
-    trailing whitespace, dashes, and underscores.
-    """
-    value = str(value)
-    if allow_unicode:
-        value = unicodedata.normalize('NFKC', value)
-    else:
-        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
-    value = re.sub(r'[^\w\s-]', '', value.lower())
-    return re.sub(r'[-\s]+', '-', value).strip('-_')
-
-def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url: str, output_dir: str, limit: int, name=''):
+def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url: str, output_dir: str, limit: int):
     global tried_urls
     global image_md5s
     global in_progress
@@ -55,15 +38,12 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
     acquired_img_sema = False
     path = urllib.parse.urlsplit(url).path
     filename = posixpath.basename(path).split('?')[0]  # Strip GET parameters from filename
-    name_, ext = os.path.splitext(filename)
+    name, ext = os.path.splitext(filename)
     
-    if name:
-        name_ = name
-    name_ = name_.strip()[:36].strip()
-    name_ = slugify(name_)
+    name = name.strip()[:36].strip()
     if not ext:
         ext = '.gif'
-    filename = (name_ + ext).replace('.gifv', '.gif')
+    filename = (name + ext).replace('.gifv', '.gif')
 
     try:
         request = urllib.request.Request(url, None, urlopenheader)
@@ -72,7 +52,6 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
         if not imgtype:
             print('SKIP: Invalid image, not saving ' + filename)
             return
-        filename = (name_ + ext).replace('.gifv', '.gif')
 
         md5_key = hashlib.md5(image).hexdigest()
         if md5_key in image_md5s:
@@ -85,7 +64,7 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
                 print('SKIP: Already downloaded ' + filename + ', not saving')
                 return
             i += 1
-            filename = "%s-%d%s" % (name_, i, ext)
+            filename = "%s-%d%s" % (name, i, ext)
 
         image_md5s[md5_key] = filename
 
@@ -126,26 +105,17 @@ def fetch_images_from_keyword(pool_sema: threading.Semaphore, img_sema: threadin
         html = response.read().decode('utf8')
         with open('html.html', 'w', encoding='utf8') as f:
             f.write(html)
-        # links = re.findall('murl&quot;:&quot;(.*?)&quot;', html)
-        from bs4 import BeautifulSoup
-        import json
-        soup = BeautifulSoup(html, 'html.parser')
-        alist = soup.select('div.imgpt > a[m]')
-        metas = [json.loads(a['m']) for a in alist]
+        links = re.findall('murl&quot;:&quot;(.*?)&quot;', html)
         try:
-            if metas[-1] == last:
+            if links[-1] == last:
                 return
-            for index, meta in enumerate(metas):
-                link = meta['murl']
-                name = meta['desc'] + ' - ' + meta['t']
+            for index, link in enumerate(links):
                 if limit is not None and len(tried_urls) >= limit:
                     exit(0)
-                t = threading.Thread(target=download, args=(pool_sema, img_sema, link, output_dir, limit),
-                        kwargs={'name': name}
-                )
+                t = threading.Thread(target=download, args=(pool_sema, img_sema, link, output_dir, limit))
                 t.start()
                 current += 1
-            last = metas[-1]
+            last = links[-1]
         except IndexError:
             print('FAIL: No search results for "{0}"'.format(keyword))
             return
@@ -180,7 +150,6 @@ def main():
                         required=False)
     parser.add_argument('-o', '--output', help='Output directory', required=False)
     parser.add_argument('-a', '--adult-filter-off', help='Disable adult filter', action='store_true', required=False)
-    parser.add_argument('-g', '--animated-gif', help='Disable adult filter', action='store_true', required=False)
     parser.add_argument('--filters',
                         help='Any query based filters you want to append when searching for images, e.g. +filterui:license-L1', default='',
                         required=False)
@@ -196,8 +165,6 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     output_dir_origin = output_dir
-    if args.animated_gif:
-        args.filters += '+filterui:photo-animatedgif'
     signal.signal(signal.SIGINT, backup_history)
     try:
         download_history = open(os.path.join(output_dir, 'download_history.pickle'), 'rb')
