@@ -85,7 +85,7 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
                 print('SKIP: Already downloaded ' + filename + ', not saving')
                 return
             i += 1
-            filename = "%s-%d%s" % (name, i, ext)
+            filename = "%s-%d.%s" % (name, i, ext)
 
         image_md5s[md5_key] = filename
 
