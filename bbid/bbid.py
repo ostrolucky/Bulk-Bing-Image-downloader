@@ -22,7 +22,7 @@ output_dir = './bing'  # default output dir
 tried_urls = []
 image_md5s = {}
 in_progress = 0
-urlopenheader = {'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0'}
+urlopenheader = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134'}
 
 
 def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url: str, output_dir: str, limit: int):
@@ -93,7 +93,7 @@ def fetch_images_from_keyword(pool_sema: threading.Semaphore, img_sema: threadin
     global image_md5s
     global in_progress
     global urlopenheader
-    current = 0
+    current = 1
     last = ''
     while True:
         time.sleep(0.1)
