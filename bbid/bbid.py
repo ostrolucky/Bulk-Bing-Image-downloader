@@ -8,6 +8,7 @@ import posixpath
 import re
 import signal
 import socket
+import string
 import threading
 import time
 import urllib.parse
@@ -36,22 +37,25 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
     pool_sema.acquire()
     in_progress += 1
     acquired_img_sema = False
+
     path = urllib.parse.urlsplit(url).path
-    filename = posixpath.basename(path).split('?')[0]  # Strip GET parameters from filename
-    name, ext = os.path.splitext(filename)
-    
+    name, _ = os.path.splitext(posixpath.basename(path))
+    if not name:
+        # if path and name are empty (e.g. https://sample.domain/abcd/?query)
+        name = hashlib.md5(url.encode('utf-8')).hexdigest()
     name = name.strip()[:36].strip()
-    if not ext:
-        ext = '.gif'
-    filename = (name + ext).replace('.gifv', '.gif')
 
     try:
-        request = urllib.request.Request(url, None, urlopenheader)
+        request = urllib.request.Request(urllib.parse.quote(url, safe=string.printable), None, urlopenheader)
         image = urllib.request.urlopen(request).read()
         imgtype = imghdr.what(BytesIO(image), image)
         if not imgtype:
-            print('SKIP: Invalid image, not saving ' + filename)
+            print('SKIP: Invalid image, not saving ' + name)
             return
+
+        # Attach a file extension based on an image header
+        ext = 'jpg' if imgtype == 'jpeg' else imgtype
+        filename = name + '.' + ext
 
         md5_key = hashlib.md5(image).hexdigest()
         if md5_key in image_md5s:
@@ -64,7 +68,7 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
                 print('SKIP: Already downloaded ' + filename + ', not saving')
                 return
             i += 1
-            filename = "%s-%d%s" % (name, i, ext)
+            filename = "%s-%d.%s" % (name, i, ext)
 
         image_md5s[md5_key] = filename
 
@@ -79,7 +83,7 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
         print(" OK : " + filename)
         tried_urls.append(url)
     except Exception as e:
-        print("FAIL: " + filename, str(e))
+        print("FAIL: " + name, str(e))
     finally:
         pool_sema.release()
         if acquired_img_sema:
