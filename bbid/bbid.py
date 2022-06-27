@@ -8,6 +8,7 @@ import posixpath
 import re
 import signal
 import socket
+import string
 import threading
 import time
 import urllib.parse
@@ -23,19 +24,6 @@ tried_urls = []
 image_md5s = {}
 in_progress = 0
 urlopenheader = {'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0'}
-
-
-# Naive URL encoding
-def _encode_url(url):
-    scheme, netloc, path, query, fragment = list(urllib.parse.urlsplit(url))
-
-    path = urllib.parse.quote(path)  # path
-    query = urllib.parse.quote_plus(query)  # query
-    fragment = urllib.parse.quote(fragment)  # fragment
-
-    encoded_url = urllib.parse.urlunsplit((scheme, netloc, path, query, fragment))
-
-    return encoded_url
 
 
 def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url: str, output_dir: str, limit: int):
@@ -58,12 +46,7 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
     name = name.strip()[:36].strip()
 
     try:
-        url.encode('ascii')
-    except UnicodeEncodeError:  # the url contains non-ascii characters
-        url = _encode_url(url)
-
-    try:
-        request = urllib.request.Request(url, None, urlopenheader)
+        request = urllib.request.Request(urllib.parse.quote(url, safe=string.printable), None, urlopenheader)
         image = urllib.request.urlopen(request).read()
         imgtype = imghdr.what(BytesIO(image), image)
         if not imgtype:
