@@ -8,7 +8,6 @@ import posixpath
 import re
 import signal
 import socket
-import string
 import threading
 import time
 import urllib.parse
@@ -24,6 +23,19 @@ tried_urls = []
 image_md5s = {}
 in_progress = 0
 urlopenheader = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134'}
+
+
+# Naive URL encoding
+def _encode_url(url):
+    scheme, netloc, path, query, fragment = list(urllib.parse.urlsplit(url))
+
+    path = urllib.parse.quote(path)  # path
+    query = urllib.parse.quote_plus(query)  # query
+    fragment = urllib.parse.quote(fragment)  # fragment
+
+    encoded_url = urllib.parse.urlunsplit((scheme, netloc, path, query, fragment))
+
+    return encoded_url
 
 
 def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url: str, output_dir: str, limit: int):
@@ -46,7 +58,12 @@ def download(pool_sema: threading.Semaphore, img_sema: threading.Semaphore, url:
     name = name.strip()[:36].strip()
 
     try:
-        request = urllib.request.Request(urllib.parse.quote(url, safe=string.printable), None, urlopenheader)
+        url.encode('ascii')
+    except UnicodeEncodeError:  # the url contains non-ascii characters
+        url = _encode_url(url)
+
+    try:
+        request = urllib.request.Request(url, None, urlopenheader)
         image = urllib.request.urlopen(request).read()
         imgtype = imghdr.what(BytesIO(image), image)
         if not imgtype:
@@ -107,8 +124,6 @@ def fetch_images_from_keyword(pool_sema: threading.Semaphore, img_sema: threadin
         request = urllib.request.Request(request_url, None, headers=urlopenheader)
         response = urllib.request.urlopen(request)
         html = response.read().decode('utf8')
-        with open('html.html', 'w', encoding='utf8') as f:
-            f.write(html)
         links = re.findall('murl&quot;:&quot;(.*?)&quot;', html)
         try:
             if links[-1] == last:
