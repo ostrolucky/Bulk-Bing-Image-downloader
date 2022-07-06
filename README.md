@@ -12,7 +12,7 @@ Bulk Bing Image Downloader
 ## Installation
 
 ```sh
-pip install git+https://github.com/FarisHijazi/Bulk-Bing-Image-downloader
+pip install git+https://github.com/ostrolucky/Bulk-Bing-Image-downloader
 ```
 
 ### Usage

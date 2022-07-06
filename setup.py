@@ -1,10 +1,7 @@
 import setuptools
-import glob
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
-
-scripts = glob.glob('*.py') + glob.glob('*/*.py')
 
 setuptools.setup(
     name="bbid",
@@ -20,7 +17,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    scripts=scripts,
+    scripts=['bbid/bbid.py'],
     entry_points={
         'console_scripts': [
             'bbid=bbid.bbid:main',
